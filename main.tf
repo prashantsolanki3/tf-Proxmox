@@ -11,10 +11,27 @@ terraform {
 }
 
 
+variable "PROXMOX_URL" {
+  type = string
+}
+
+
+variable "PROXMOXSUPERSECRETPASSWORD" {
+  type = string
+}
+
+variable "NODETOBEDEPLOYED" {
+  type = string
+}
+
+variable "SSHPERSONALPUBLICKEY" {
+  type = string
+} 
+
 provider "proxmox" {
-    pm_api_url = "https://${PROXMOX_URL}:8006/api2/json"
+    pm_api_url = "https://${var.PROXMOX_URL}:8006/api2/json"
     pm_user = "root@pam"
-    pm_password = "${PROXMOXSUPERSECRETPASSWORD}"
+    pm_password = "${var.PROXMOXSUPERSECRETPASSWORD}"
     pm_tls_insecure = "true"
 }
 
@@ -22,10 +39,10 @@ provider "proxmox" {
 resource "proxmox_vm_qemu" "proxmox_vm" {
   count             = 1
   name              = "tf-vm-${count.index}"
-  target_node       = "${NODETOBEDEPLOYED}"
+  target_node       = "${var.NODETOBEDEPLOYED}"
   clone             = "debian-10"
   os_type           = "cloud-init"
-  cores             = 4
+  cores             = 2 
   sockets           = "1"
   cpu               = "host"
   memory            = 2048
@@ -35,7 +52,7 @@ resource "proxmox_vm_qemu" "proxmox_vm" {
 disk {
     size            = "35G"
     type            = "scsi"
-    storage         = "local"
+    storage         = "local-lvm"
     iothread        = 0
   }
 network {
@@ -48,8 +65,8 @@ lifecycle {
     ]
   }
 # Cloud Init Settings (Change the IP range and the GW to suit your needs)
-  ipconfig0 = "ip=10.10.10.15${count.index + 1}/24,gw=10.10.10.1"
+  ipconfig0 = "ip=172.16.1.5${count.index + 1}/24,gw=172.16.1.1"
 sshkeys = <<EOF
-${SSHPERSONALPUBLICKEY}  
+${var.SSHPERSONALPUBLICKEY}  
 EOF
 }
